@@ -1,18 +1,17 @@
 {
 	"keywords" : [
-		"locking","redis"
+		"simplecache","api"
 	],
 	"autoload" : {
 		"psr-0" : {
 			"Splitice" : "src"
 		}
 	},
-	"name" : "splitice/php-redis-locking",
+	"name" : "splitice/php-simplecache-api",
 	"type" : "library",
 	"license" : "MIT",
 	"require" : {
 		"php" : ">=5.3",
-		"splitice/resource-factory" : "dev-master",
 		"predis/predis" : "dev-master"
 	},
     "require-dev": {
