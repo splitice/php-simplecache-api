@@ -4,15 +4,13 @@ namespace Splitice\SimpleCache;
 
 class ApiClient
 {
-	private $ip;
-	private $port;
 	private $ch;
 	private $encode;
 
-	function __construct($ip, $port, $encode = true)
+	function __construct($urlBase, $encode = true)
 	{
-		$this->ip = $ip;
-		$this->port = $port;
+	    if(substr($urlBase, -1) != '/') $urlBase .= '/';
+		$this->urlBase = $urlBase;
 		$this->encode = $encode;
 		$this->ch = curl_init();
 		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, true);
@@ -33,7 +31,7 @@ class ApiClient
 
 	function url($table, $key = null)
 	{
-		$url = 'http://' . $this->ip . ':' . $this->port . '/' . ($this->encode ? urlencode($table) : $table);
+		$url = $this->urlBase . ($this->encode ? urlencode($table) : $table);
 		if ($key !== null) {
 			$url .= '/' . ($this->encode ? urlencode($key) : $key);
 		}
@@ -72,7 +70,12 @@ class ApiClient
 			} // [+]
 		}
 
-		return $headers;
+		$ret = array();
+        foreach($headers as $name=>$value){
+            $ret[strtolower($name)] = $value;
+        }
+
+		return $ret;
 	}
 
 	function table_listing($table, $start = null, $limit = null, &$entries = null, &$total = null)
@@ -85,6 +88,7 @@ class ApiClient
 		if ($limit != null) {
 			$headers[] = 'X-Limit: ' . $limit;
 		}
+        curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, null);
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, $headers);
 		curl_setopt($this->ch, CURLOPT_URL, $this->url($table));
 		curl_setopt($this->ch, CURLOPT_HEADER, true);
@@ -138,7 +142,7 @@ class ApiClient
 		$header = substr($data, 0, $header_size);
 		$content = substr($data, $header_size);
 		$header = $this->http_parse_headers($header);
-		$expires = $header['X-Ttl'];
+		$expires = $header['x-ttl'];
 
 		return $content;
 	}
@@ -149,6 +153,7 @@ class ApiClient
 		curl_setopt($this->ch, CURLOPT_URL, $this->url($table, $key));
 		curl_setopt($this->ch, CURLOPT_HEADER, true);
 		$data = curl_exec($this->ch);
+
 		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
 			return null;
 		}
@@ -159,13 +164,13 @@ class ApiClient
 		$header_size = curl_getinfo($this->ch, CURLINFO_HEADER_SIZE);
 		$header = substr($data, 0, $header_size);
 		$header = $this->http_parse_headers($header);
-		$metadata = array('length' => curl_getinfo($this->ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD), 'ttl' => $header['X-Ttl']);
+		$metadata = array('length' => curl_getinfo($this->ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD), 'ttl' => $header['x-ttl']);
 		return $metadata;
 	}
 
 	function key_bulkdelete($table, array $keys)
 	{
-		curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'BULK');
+		curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'PURGE');
 		$headers = array();
 		foreach ($keys as $k) {
 			$headers[] = 'X-Delete: ' . $k;
