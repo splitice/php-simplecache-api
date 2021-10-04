@@ -127,9 +127,11 @@ class ApiClient
 
 	function key_get($table, $key, &$expires = null)
 	{
+		curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, null);
 		curl_setopt($this->ch, CURLOPT_HTTPGET, true);
 		curl_setopt($this->ch, CURLOPT_URL, $this->url($table, $key));
 		curl_setopt($this->ch, CURLOPT_HEADER, true);
+		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
 		$data = curl_exec($this->ch);
 		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
 			return null;
@@ -147,11 +149,35 @@ class ApiClient
 		return $content;
 	}
 
+	function key_put($table, $key, $content, $expires = null)
+	{
+		curl_setopt($this->ch, CURLOPT_HTTPGET, false);
+		curl_setopt($this->ch, CURLOPT_CUSTOMREQUEST, 'PUT');
+		curl_setopt($this->ch, CURLOPT_POSTFIELDS, $content);
+		curl_setopt($this->ch, CURLOPT_URL, $this->url($table, $key));
+		curl_setopt($this->ch, CURLOPT_HEADER, true);
+
+		if($expires){
+			curl_setopt($this->ch, CURLOPT_HTTPHEADER, array('X-TTL: ' . $expires));
+		}else{
+			curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
+		}
+
+		$data = curl_exec($this->ch);
+		$statusCode = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+		if ($statusCode != 200) {
+			throw new \Exception('Error Executing Request');
+		}
+		
+		return $data;
+	}
+
 	function key_meta($table, $key)
 	{
 		curl_setopt($this->ch, CURLOPT_NOBODY, true);
 		curl_setopt($this->ch, CURLOPT_URL, $this->url($table, $key));
 		curl_setopt($this->ch, CURLOPT_HEADER, true);
+		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
 		$data = curl_exec($this->ch);
 
 		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
