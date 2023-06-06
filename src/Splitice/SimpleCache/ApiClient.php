@@ -6,6 +6,7 @@ class ApiClient
 {
 	private $ch;
 	private $encode;
+	private $urlBase;
 
 	function __construct($urlBase, $encode = true)
 	{
@@ -65,8 +66,7 @@ class ApiClient
 				if (substr($h[0], 0, 1) == "\t") // [+]
 					$headers[$key] .= "\r\n\t" . trim($h[0]); // [+]
 				elseif (!$key) // [+]
-					$headers[0] = trim($h[0]);
-				trim($h[0]); // [+]
+					$headers[0] = trim($h[0]); // [+]
 			} // [+]
 		}
 
@@ -93,7 +93,11 @@ class ApiClient
 		curl_setopt($this->ch, CURLOPT_URL, $this->url($table));
 		curl_setopt($this->ch, CURLOPT_HEADER, true);
 		$data = curl_exec($this->ch);
-		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
+		$code = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+		if($code > 499){
+			throw new \Exception('Server error: '.$code);
+		}
+		if ($code == 404) {
 			return array();
 		}
 
@@ -103,6 +107,10 @@ class ApiClient
 		$header = $this->http_parse_headers($header);
 		$total = isset($header['X-Total']) ? $header['X-Total'] : 0;
 		$entries = isset($header['X-Entries']) ? $header['X-Entries'] : 0;
+
+		if($entries == 0){
+			return array();
+		}
 
 		$data = explode("\n", rtrim($content, "\r\n"));
 		foreach ($data as $k => $v) {
@@ -133,6 +141,9 @@ class ApiClient
 		curl_setopt($this->ch, CURLOPT_HEADER, true);
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
 		$data = curl_exec($this->ch);
+		if($code > 499){
+			throw new \Exception('Server error: '.$code);
+		}
 		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
 			return null;
 		}
@@ -180,6 +191,9 @@ class ApiClient
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
 		$data = curl_exec($this->ch);
 
+		if($code > 499){
+			throw new \Exception('Server error: '.$code);
+		}
 		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
 			return null;
 		}
