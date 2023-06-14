@@ -6,7 +6,6 @@ class ApiClient
 {
 	private $ch;
 	private $encode;
-	private $urlBase;
 
 	function __construct($urlBase, $encode = true)
 	{
@@ -48,19 +47,20 @@ class ApiClient
 			$h = explode(':', $h, 2);
 
 			if (isset($h[1])) {
-				if (!isset($headers[$h[0]]))
-					$headers[$h[0]] = trim($h[1]);
-				elseif (is_array($headers[$h[0]])) {
+				$key = strtolower($h[0]); // [+]
+				
+				if (!isset($headers[$key]))
+					$headers[$key] = trim($h[1]);
+				elseif (is_array($headers[$key])) {
 					// $tmp = array_merge($headers[$h[0]], array(trim($h[1]))); // [-]
 					// $headers[$h[0]] = $tmp; // [-]
-					$headers[$h[0]] = array_merge($headers[$h[0]], array(trim($h[1]))); // [+]
+					$headers[$key] = array_merge($headers[$key], array(trim($h[1]))); // [+]
 				} else {
 					// $tmp = array_merge(array($headers[$h[0]]), array(trim($h[1]))); // [-]
 					// $headers[$h[0]] = $tmp; // [-]
-					$headers[$h[0]] = array_merge(array($headers[$h[0]]), array(trim($h[1]))); // [+]
+					$headers[$key] = array_merge(array($headers[$key]), array(trim($h[1]))); // [+]
 				}
 
-				$key = $h[0]; // [+]
 			} else // [+]
 			{ // [+]
 				if (substr($h[0], 0, 1) == "\t") // [+]
@@ -105,8 +105,8 @@ class ApiClient
 		$header = substr($data, 0, $header_size);
 		$content = substr($data, $header_size);
 		$header = $this->http_parse_headers($header);
-		$total = isset($header['X-Total']) ? $header['X-Total'] : 0;
-		$entries = isset($header['X-Entries']) ? $header['X-Entries'] : 0;
+		$total = $header['x-total'] ?? 0;
+		$entries = $header['x-entries'] ?? 0;
 
 		if($entries == 0){
 			return array();
@@ -141,9 +141,6 @@ class ApiClient
 		curl_setopt($this->ch, CURLOPT_HEADER, true);
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
 		$data = curl_exec($this->ch);
-		if($code > 499){
-			throw new \Exception('Server error: '.$code);
-		}
 		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
 			return null;
 		}
@@ -191,9 +188,6 @@ class ApiClient
 		curl_setopt($this->ch, CURLOPT_HTTPHEADER, array());
 		$data = curl_exec($this->ch);
 
-		if($code > 499){
-			throw new \Exception('Server error: '.$code);
-		}
 		if (curl_getinfo($this->ch, CURLINFO_HTTP_CODE) == 404) {
 			return null;
 		}
