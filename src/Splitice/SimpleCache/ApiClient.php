@@ -6,6 +6,7 @@ class ApiClient
 {
 	private $ch;
 	private $encode;
+	private $urlBase;
 
 	function __construct($urlBase, $encode = true)
 	{
@@ -223,5 +224,10 @@ class ApiClient
 		$data = curl_exec($this->ch);
 
 		return trim($data) == 'DELETED';
+	}
+
+	function getCurlHandle()
+	{
+		return $this->ch;
 	}
 } 
